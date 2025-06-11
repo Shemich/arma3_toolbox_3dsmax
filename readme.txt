@@ -35,25 +35,5 @@ Exact installation procedure and a movie can be found here: https://www.youtube.
 Full documentation and demo videos can be found here: http://www.sparrowstudio.net/armavdv/toolbox/docu.html in WEB ARCHIVE
 
 -----------------
-3 . License
------------------
-By using the software provided in this package you automatically agree to the following terms of use.
-This software is provided as is with no USER WARRANTY.
-THE AUTHOR IS NOT RESPONSIBLE FOR ANY HARM CAUSED BY THIS SOFTWARE, BE IT TO YOUR COMPUTER OR MODELING SKILLS.
-The package is free of use for non-commercial projects and may be redistributed freely as long as the contents remain the same.
-It is prohibited to modify the software in any way. For further questions please contact vorobiev.a.j@gmail.com
 
 > Note: This version has been updated by Shemich to ensure compatibility with 3ds Max 2024. All credits for the original software go to Soul_Assassin.
-
------------------
-4 . Thanks
------------------
-
-Original author thanks go to:
-
-T_D  
-Rocket  
-USSRSniper  
-Bitcons (icons)
-
-and anyone else I forgot to mention :), no hard feelings :)
