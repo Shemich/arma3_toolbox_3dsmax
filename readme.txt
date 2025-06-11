@@ -6,7 +6,7 @@
 -----------------------------------------------
 
 Date: [Insert Date]
-Version: 1.2.00 (Updated to work with 3ds Max 2024)
+Version: 1.2.2 (Updated to work with 3ds Max 2024)
 
 Tested on: 2024 64bit
 
