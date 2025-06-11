@@ -1,437 +1,271 @@
 struct vertexStruct
 (
-	pointID,
-	normalID,
-	u,
-	v
+    pointID,
+    normalID,
+    u,
+    v
 )
 struct normalStruct
 (
-	x,
-	y,
-	z,
-	
-	function point3toPoint coord=
-	(
-		x = coord.x
-		y = coord.y
-		z = coord.z
-	)
+    x,
+    y,
+    z,
+    
+    function point3toPoint coord=
+    (
+        x = coord.x
+        y = coord.y
+        z = coord.z
+    )
 )
 struct pointStruct
 (
-	x,
-	y,
-	z,
-	flags = 0,
-	
-	function point3toPoint coord=
-	(
-		x = coord.x
-		y = coord.y
-		z = coord.z
-	)
+    x,
+    y,
+    z,
+    flags = 0,
+    
+    function point3toPoint coord=
+    (
+        x = coord.x
+        y = coord.y
+        z = coord.z
+    )
 )
 struct faceStruct
 (
-	numVerts,
-	flags = 0,
-	textureName,
-	materialName
+    numVerts,
+    flags = 0,
+    textureName,
+    materialName
 )
 struct uvCoord
 (
-	u,
-	v
+    u,
+    v
 )
 struct selectStruct
 (
-	bool = 0x01,
-	selName,
-	numBytes
+    bool = 0x01,
+    selName,
+    numBytes
 )
 struct uvStruct
 (
-	bool = 0x01,
-	tagName = "#UVSet#",
-	uvSetID,
-	numBytes
+    bool = 0x01,
+    tagName = "#UVSet#",
+    uvSetID,
+    numBytes
 )
 struct selNameStruct
 (
-	bool = 0x01,
-	tagName,
-	numBytes
+    bool = 0x01,
+    tagName,
+    numBytes
 )
 struct sharpEdgeStruct
 (
-	bool = 0x01,
-	tagName = "#SharpEdges#",
-	numBytes,
-	
-	function getNumBytes meshColl=
-	(
-		numBytesq = 0
-		totalEdgeArray = #()
-		for i in meshColl do
-		(
-			vertArray = #()
-			for j = 1 to i.numfaces do
-			(
-				smoothGroup = polyop.getFaceSmoothGroup i j
-				if smoothGroup == 0 do
-				(
-					edgeArray = polyop.getFaceEdges i j
-					for d in edgeArray do
-					(
-						unique = appendifunique vertArray d
-						if unique == true do numBytesq += 8
-					)
-				)
-			)
-			append totalEdgeArray vertArray
-		)
-		numBytes = numBytesq
-		final = #(numBytesq,totalEdgeArray)
-		return final
-	)
+    bool = 0x01,
+    tagName = "#SharpEdges#",
+    numBytes,
+    
+    function getNumBytes meshColl=
+    (
+        numBytesq = 0
+        totalEdgeArray = #()
+        for i in meshColl do
+        (
+            vertArray = #()
+            for j = 1 to i.numfaces do
+            (
+                smoothGroup = polyop.getFaceSmoothGroup i j
+                if smoothGroup == 0 do
+                (
+                    edgeArray = polyop.getFaceEdges i j
+                    for d in edgeArray do
+                    (
+                        unique = appendifunique vertArray d
+                        if unique == true do numBytesq += 8
+                    )
+                )
+            )
+            append totalEdgeArray vertArray
+        )
+        numBytes = numBytesq
+        final = #(numBytesq,totalEdgeArray)
+        return final
+    )
 )
 
 struct endOfFile
 (
-	bool = 0x01,
-	tagName = "#EndOfFile#",
-	bytes = 0
+    bool = 0x01,
+    tagName = "#EndOfFile#",
+    bytes = 0
 )
-	
+    
 struct lodStruct
 (
-	lodType = "P3DM",
-	majVer = 28,
-	minVer = 256,
-	numPointsLod,
-	numNormalsLod,
-	numFacesLod,
-	unknown = 0,
-	tagg = "TAGG",
-	meshColl,
-	resolution
+    lodType = "P3DM",
+    majVer = 28,
+    minVer = 256,
+    numPointsLod,
+    numNormalsLod,
+    numFacesLod,
+    unknown = 0,
+    tagg = "TAGG",
+    meshColl,
+    resolution
 )
 
 struct vectorOp
 (
-	function sortCWVert obj vertIDArray faceID vertNum1=
-	(
-		vertArray = #()
-		faceNormal = polyop.getFaceNormal obj faceID
-		for i in vertIDArray do
-		(
-			vertPos = polyop.getvert obj (i+1-vertNum1)
-			append vertArray vertPos
-		)
-		numVerts = vertArray.count
-		center = [0,0,0]
-		for i = 1 to numVerts do
-		(
-			center += vertArray[i]
-		)
-		center /= numVerts
-		local a,b
-		for i = 1 to numVerts-2 do
-		(
-			smallestAngle = -1
-			smallest = -1
-			a = vertArray[i]
-			a -= center
-			a = normalize a
-			
-			for j = (i +1) to numVerts do
-			(
-				b = vertArray[j]
-				b -= center
-				b = normalize b
-				
-				angle1 = dot a b
-				if angle1 > smallestAngle do
-				(
-					smallestAngle = angle1
-					smallest = j
-				)
-			)
-			
-			temp = vertIDArray[smallest]
-			vertIDArray[smallest] = vertIDArray[i+1]
-			vertIDArray[i+1] = temp
-		)
-		v1 = polyop.getvert obj (vertIDArray[1]+1-vertNum1)
-		v2 = polyop.getvert obj (vertIDArray[2]+1-vertNum1)
-		firstVec = v1 - center
-		secondVec = v2 - center
-		-- -- -- format "V1: %\n" firstVec
-		-- -- -- format "V2: %\n" secondVec
-		newNorm = normalize (cross firstVec secondVec)
-		normAng = dot newNorm faceNormal
-		-- -- -- format "Normal angles: %\n" normAng
-		-- -- -- format "Before Reverse: %\n" (vertIDArray as string)
-		if normAng < 0 do
-		(
-			reversedArray = #()
-			-- if normAng != -1.0 do -- print "NOT EXACT!"
-			for i=0 to numVerts-1 do
-			(
-				append reversedArray vertIDArray[numVerts-i]
-			)
-			vertIDArray = reversedArray
-		)
-		
-		-- -- -- format "Poly % After: %\n" faceID (vertIDArray as string)
-		return vertIDArray
-	),
-	function getVertexNormalVector obj vertexID=
-	(
-		listOfPolies = (polyop.getFacesUsingVert obj vertexId) as array
-		-- -- -- format "Polies: %\n" (listOfPolies as string)
-		listOfNormals = #()
-		comPoint = [0,0,0]
-		for i in listOfPolies do
-		(
-			polyNormal = polyop.getFaceNormal obj i
-			append listOfNormals polyNormal
-			---- -- -- format "List of Normals: %\n" (listOfNormals as string)
-		)
-		for j = 1 to listOfNormals.count do
-		(
-			comPoint += listOfNormals[j]
-		)
-		finalNormal = comPoint/length(comPoint)
-		return finalNormal
-	),
-	
-	function arraySubtract coll numVerts=
-	(
-		coll = coll as array
-		for i = 1 to coll.count do
-		(
-			coll[i] = coll[i]+(-1+numVerts)
-		)
--- 		lstVert = coll[coll.count]
--- 		preLstVert = coll[coll.count-1]
--- 		coll[coll.count] = preLstVert
--- 		coll[coll.count-1] = lstVert
-		return coll
-	),
-	
-	function getTotalNumTrisQuads meshes=
-	(
-		local result = [0,0]
-		for i in meshes do
-		(
-			for j =1 to i.numfaces do
-			(
-				vertFaceID = (polyop.getVertsUsingFace i j) as array
-				-- -- -- -- format "getVerts using Face in function: %\n" ((vertFaceID as array) as string)
-				if vertFaceID.count == 3 do
-				(
-					result.x += 1
-				)
-				if vertFaceID.count == 4 do
-				(
-					result.y += 1
-				)
-			)
-		)
-		return result
-	)
+    function sortCWVert obj vertIDArray faceID vertNum1=
+    (
+        vertArray = #()
+        faceNormal = polyop.getFaceNormal obj faceID
+        for i in vertIDArray do
+        (
+            vertPos = polyop.getvert obj (i+1-vertNum1)
+            append vertArray vertPos
+        )
+        numVerts = vertArray.count
+        center = [0,0,0]
+        for i = 1 to numVerts do
+        (
+            center += vertArray[i]
+        )
+        center /= numVerts
+        local a,b
+        for i = 1 to numVerts-2 do
+        (
+            smallestAngle = -1
+            smallest = -1
+            a = vertArray[i]
+            a -= center
+            a = normalize a
+            
+            for j = (i +1) to numVerts do
+            (
+                b = vertArray[j]
+                b -= center
+                b = normalize b
+                
+                angle1 = dot a b
+                if angle1 > smallestAngle do
+                (
+                    smallestAngle = angle1
+                    smallest = j
+                )
+            )
+            
+            temp = vertIDArray[smallest]
+            vertIDArray[smallest] = vertIDArray[i+1]
+            vertIDArray[i+1] = temp
+        )
+        v1 = polyop.getvert obj (vertIDArray[1]+1-vertNum1)
+        v2 = polyop.getvert obj (vertIDArray[2]+1-vertNum1)
+        firstVec = v1 - center
+        secondVec = v2 - center
+        newNorm = normalize (cross firstVec secondVec)
+        normAng = dot newNorm faceNormal
+        if normAng < 0 do
+        (
+            reversedArray = #()
+            for i=0 to numVerts-1 do
+            (
+                append reversedArray vertIDArray[numVerts-i]
+            )
+            vertIDArray = reversedArray
+        )
+        
+        return vertIDArray
+    ),
+    function getVertexNormalVector obj vertexID=
+    (
+        listOfPolies = (polyop.getFacesUsingVert obj vertexId) as array
+        listOfNormals = #()
+        comPoint = [0,0,0]
+        for i in listOfPolies do
+        (
+            polyNormal = polyop.getFaceNormal obj i
+            append listOfNormals polyNormal
+        )
+        for j = 1 to listOfNormals.count do
+        (
+            comPoint += listOfNormals[j]
+        )
+        finalNormal = comPoint/length(comPoint)
+        return finalNormal
+    ),
+    
+    function arraySubtract coll numVerts=
+    (
+        coll = coll as array
+        for i = 1 to coll.count do
+        (
+            coll[i] = coll[i]+(-1+numVerts)
+        )
+        return coll
+    ),
+    
+    function getTotalNumTrisQuads meshes=
+    (
+        local result = [0,0]
+        for i in meshes do
+        (
+            for j =1 to i.numfaces do
+            (
+                vertFaceID = (polyop.getVertsUsingFace i j) as array
+                if vertFaceID.count == 3 do
+                (
+                    result.x += 1
+                )
+                if vertFaceID.count == 4 do
+                (
+                    result.y += 1
+                )
+            )
+        )
+        return result
+    )
 )
 
 struct materialOp
 (
-	function getTextureName obj matType=
-	(
-		texturePath = ""
-		mtl = obj.material
-		if(Classof mtl == DirectX_9_Shader) do
-		(
-			if matType == "superShader" do
-			(
-				CurrentTechnique = mtl.technique
-				EffectFile = mtl.effectfile
-				bmp = mtl.geteffectbitmap 2
-				BmpFileName = bmp.filename
-				BmpFileNameRel = pathConfig.removePathTopParent BmpFileName
-				-- print BmpFileNameRel 
-				if BmpFileNameRel != undefined and BmpFileNameRel != "" do texturePath = BmpFileNameRel
-			)
-			if matType == "textureAlpha" do
-			(
-				bmp = mtl.geteffectbitmap 1
-				BmpFileName = bmp.filename
-				BmpFileNameRel = pathConfig.removePathTopParent BmpFileName
-				-- print BmpFileNameRel 
-				if BmpFileNameRel != undefined and BmpFileNameRel != "" do texturePath = BmpFileNameRel
-			)
-			if matType == "glass" do
-			(
-				texturePath = "#(argb,8,8,3)color("+((mtl.diffuseColor.r/255) as string)+","+((mtl.diffuseColor.g/255) as string)+","+((mtl.diffuseColor.b/255) as string)+","+(mtl.opacity as string)+",CO)"
-			)
-		)
-		return texturePath
-	),
-	
-	function readTempShader typeShader=
-	(
-		rvmatFile = (getDir #scripts) + "\\ArmAToolBox\\shaders\\"+typeShader
-		openRvmatFile = openFile rvmatFile
-		seek openRvmatFile #eof
-		maxlen=filepos openRvmatFile
-		seek openRvmatFile 0
-		tempRvmat = (readChars openRvmatFile maxlen errorAtEOF:false) as string
-		close openRvmatFile
-		return tempRvmat
-	),
-	
-	function readTextureFilePath mtl num=
-	(
-		bmp = mtl.geteffectbitmap num
-		BmpFileName = bmp.filename
-		BmpFileNameRel = pathConfig.removePathTopParent BmpFileName
-		return BmpFileNameRel
-	),
-	
-	function generateSuperRVMAT obj savePath=
-	(
-		temp = readTempShader "superShaderTemp.tmp"
-		materialPath = ""
-		mtl = obj.material
-		if(Classof mtl == DirectX_9_Shader) do
-		(
-			savePath = getFilenamePath savePath
-			materialName = mtl.name
-			lookupPath = savePath+materialName+".rvmat"
-			lookup = doesFileExist lookupPath
-			if lookup == false then
-			(
-				-- get paths
-				
-				asMap = readTextureFilePath mtl 3 -- AS map
-				smdiMap  = readTextureFilePath mtl 4
-				dtMap = readTextureFilePath mtl 5
-				nohqMap = readTextureFilePath mtl 6
-				
-				bmp = mtl.geteffectbitmap 3
-				BmpFileName = bmp.filename
-				asMap = pathConfig.removePathTopParent BmpFileName
-				
-				bmp = mtl.geteffectbitmap 4
-				BmpFileName = bmp.filename
-				smdiMap = pathConfig.removePathTopParent BmpFileName
-				
-				bmp = mtl.geteffectbitmap 5
-				BmpFileName = bmp.filename
-				dtMap = pathConfig.removePathTopParent BmpFileName
-				
-				bmp = mtl.geteffectbitmap 6
-				BmpFileName = bmp.filename
-				nohqMap = pathConfig.removePathTopParent BmpFileName
-				
-				-- get values
-				
-				amb_color = ((mtl.color_ambient.r/255.0) as string)+","+((mtl.color_ambient.g/255.0) as string)+","+((mtl.color_ambient.b/255.0) as string)+",1"
-				diff_color = ((mtl.color_diffuse.r/255.0) as string)+","+((mtl.color_diffuse.g/255.0) as string)+","+((mtl.color_diffuse.b/255.0) as string)+",1"
-				spec_color = ((mtl.color_spec.r/255.0) as string)+","+((mtl.color_spec.g/255.0) as string)+","+((mtl.color_spec.b/255.0) as string)+",1"
-				spec_power = mtl.spec as string
-				
-				-- substitute strings
-				
-				if asMap != undefined do temp = substitutestring temp "$AMBIENT_PATH$" asMap
-				if smdiMap != undefined do temp = substitutestring temp "$SMDI_PATH$" smdiMap
-				if dtMap != undefined do temp = substitutestring temp "$DETAIL_PATH$" dtMap
-				if nohqMap != undefined do temp = substitutestring temp "$NORMAL_PATH$" nohqMap
-				temp = substitutestring temp "$AMBIENT_4_FLOATS$" amb_color
-				temp = substitutestring temp "$DIFFUSE_4_FLOATS$" diff_color
-				temp = substitutestring temp "$SPECULAR_4_FLOATS$" spec_color
-				temp = substitutestring temp "$SPECULAR_POWER$" spec_power
-				-- create stream
-				try (
-					fs = createFile lookupPath
-					format "%" temp to:fs
-					close fs
-					materialPath = pathConfig.removePathTopParent lookupPath
-				) catch ( print "Material Writing Aborted")
-			) else (
-				materialPath = pathConfig.removePathTopParent lookupPath
-			)
-		)
-		return materialPath
-	),
-	
-	function generateAlphaRVMAT obj savePath=
-	(
-		temp = readTempShader "textureAlpha.tmp"
-		materialPath = ""
-		mtl = obj.material
-		if(Classof mtl == DirectX_9_Shader) do
-		(
-			savePath = getFilenamePath savePath
-			materialName = "empty_nzw"
-			lookupPath = savePath+materialName+".rvmat"
-			lookup = doesFileExist lookupPath
-			if lookup == false then
-			(
-				-- create stream
-				try (
-					fs = createFile lookupPath
-					format "%" temp to:fs
-					close fs
-					materialPath = pathConfig.removePathTopParent lookupPath
-				) catch ( print "Material Writing Aborted")
-			) else (
-				materialPath = pathConfig.removePathTopParent lookupPath
-			)
-		)
-		return materialPath
-	),
-	
-	function generateGlassRVMAT obj savePath=
-	(
-		temp = readTempShader "glass.tmp"
-		materialPath = ""
-		mtl = obj.material
-		if(Classof mtl == DirectX_9_Shader) do
-		(
-			savePath = getFilenamePath savePath
-			materialName = "glass"
-			lookupPath = savePath+materialName+".rvmat"
-			lookup = doesFileExist lookupPath
-			if lookup == false then
-			(
-				-- create stream
-				try (
-					fs = createFile lookupPath
-					format "%" temp to:fs
-					close fs
-					materialPath = pathConfig.removePathTopParent lookupPath
-				) catch ( print "Material Writing Aborted")
-			) else (
-				materialPath = pathConfig.removePathTopParent lookupPath
-			)
-		)
-		return materialPath
-	)
+    function getTexturePath obj =
+    (
+        if obj == undefined do return ""
+        if obj.material == undefined do return ""
+        if (Classof obj.material != PhysicalMaterial) do return ""
+        if obj.material.base_color_map == undefined do return ""
+        if obj.material.base_color_map.filename == undefined do return ""
+        --для того что выше сделать проброс ошибок 
+        return obj.material.base_color_map.filename
+    ),
+    function getTextureFromSubMaterial material subID =
+    (
+        if (Classof material == MultiMaterial) and (subID <= material.numsubs) then
+        (
+            subMat = material[subID]
+            if (Classof subMat == PhysicalMaterial) and (subMat.base_color_map != undefined) then
+            (
+                return subMat.base_color_map.filename
+            )
+        )
+        return ""
+    )
 )
 
 struct arrayOp
 (
-	fn compareSubArrays first second =
-	(
-		result = true --init. return value to true
-		if first.count != second.count then --if the count of the two subarrays is different,
-		result = false --return false
-		else --otherwise
-		for i = 1 to first.count do --go through all elements in the arrays
-		if first[i] != second[i] do result = false --and see if two elements are different
-		result --return the result - true if identical, false if not
-	)
+    fn compareSubArrays first second =
+    (
+        result = true
+        if first.count != second.count then result = false
+        else for i = 1 to first.count do if first[i] != second[i] do result = false
+        result
+    )
 )
 
 vectorOps = vectorOp()
@@ -452,19 +286,13 @@ struct p3dStruct
     function sortGeo meshCollUnsorted =
     (
         meshColl = #()
-        for obj in meshCollUnsorted where SuperClassOf obj == GeometryClass do
-        (
-            append meshColl obj
-        )
+        for obj in meshCollUnsorted where SuperClassOf obj == GeometryClass do append meshColl obj
         return meshColl
     ),
     function sortMem meshCollUnsorted =
     (
         meshColl = #()
-        for obj in meshCollUnsorted where SuperClassOf obj == Helper do
-        (
-            append meshColl obj
-        )
+        for obj in meshCollUnsorted where SuperClassOf obj == Helper do append meshColl obj
         return meshColl
     ),
     
@@ -482,7 +310,6 @@ struct p3dStruct
             (
                 if noOfLods[i][2] == 1.0e15 then memory = true else memory = false
                 
-                -- Collect objects
                 if selected == true then
                 (
                     meshColl = sortGeo selection
@@ -499,12 +326,7 @@ struct p3dStruct
                     currentLayer = (LayerManager.getLayerFromname noOfLods[i][1])
                     currentLayer.nodes &memCollUnsorted
                     memColl = sortMem memCollUnsorted
-                    format "Debug: Memory LOD, memColl count: %\n" memColl.count
-                    for point in memColl do
-                    (
-                        format "Debug: Point name: %, position: %\n" point.name point.pos
-                        totalVerts += 1
-                    )
+                    for point in memColl do totalVerts += 1
                 ) else (
                     for i in meshColl do
                     (
@@ -512,33 +334,30 @@ struct p3dStruct
                         totalPolies += i.numfaces
                     )
                 )
-                format "Debug: totalVerts: %, totalPolies: %\n" totalVerts totalPolies
                 newLod = lodStruct numPointsLod:totalVerts numNormalsLod:totalVerts numFacesLod:totalPolies resolution:noOfLods[i][2]
                 
-                -- LOD HEADER
-                writeString file newLod.lodType -- "P3DM"
+                writeString file newLod.lodType
                 seekStartPos += 4
                 fseek file seekStartPos #seek_set
-                writeLong file newLod.majVer -- "28"
+                writeLong file newLod.majVer
                 seekStartPos += 4
                 fseek file seekStartPos #seek_set
-                writeLong file newLod.minVer -- "256"
+                writeLong file newLod.minVer
                 seekStartPos += 4
                 fseek file seekStartPos #seek_set
-                writeLong file newLod.numPointsLod -- number of vertices
+                writeLong file newLod.numPointsLod
                 seekStartPos += 4
                 fseek file seekStartPos #seek_set
-                writeLong file newLod.numNormalsLod -- number of normals
+                writeLong file newLod.numNormalsLod
                 seekStartPos += 4
                 fseek file seekStartPos #seek_set
-                writeLong file newLod.numFacesLod -- number of polies
+                writeLong file newLod.numFacesLod
                 seekStartPos += 4
                 fseek file seekStartPos #seek_set
-                writeLong file newLod.unknown -- unknown long
+                writeLong file newLod.unknown
                 seekStartPos += 4
                 fseek file seekStartPos #seek_set
                 
-                -- STRUCT POINT
                 if noOfLods[i][2] != 1.0e15 then
                 (
                     for expMesh in meshColl do
@@ -583,7 +402,6 @@ struct p3dStruct
                     )
                 )
                 
-                -- STRUCT NORMAL
                 if noOfLods[i][2] != 1.0e15 then
                 (
                     for expMesh in meshColl do
@@ -623,86 +441,53 @@ struct p3dStruct
                     )
                 )
                 
-                -- STRUCT FACE
                 if noOfLods[i][2] != 1.0e15 do
                 (
                     numVerts1 = 0
                     for expMesh in meshColl do
                     (
-                        texName = "" 
                         matName = ""
-                        if (Classof expMesh.material == PhysicalMaterial) then
-						(
-							--format "Debug: Type of base_color_map: %\n" (classof expMesh.material.base_color_map)
-							format "Debug: Processing PhysicalMaterial for object: %\n" expMesh.name
-
-							-- Получение текстур
-							if saveTex == true then
-							(
-								--format "Debug: saveTex is enabled\n"
-								
-								try
-								(
-									if expMesh.material == undefined then
-									(
-										format "Debug: Material is undefined for object: %\n" expMesh.name
-										texName = ""
-									)
-									else
-									(	
-										format "Debug: Material properties for %:\n" expMesh.material.name
-										format "Debug: base_color_map: %\n" (if expMesh.material.base_color_map != undefined then expMesh.material.base_color_map else "undefined")
-										format "Debug: base_color_map.filename: %\n" (if expMesh.material.base_color_map != undefined and expMesh.material.base_color_map.filename != undefined then expMesh.material.base_color_map.filename else "undefined")
-										texName = getAlbedoTexturePath expMesh.material
-									)
-									
-									if texName != "" then
-									(
-										format "Debug: Albedo texture found: %\n" texName
-									)
-									else 
-									(
-										format "Debug: No albedo texture found\n"
-									)
-								)
-								catch
-								(
-									-- Перехват ошибки и вывод подробного отладочного сообщения
-									format "Debug: ERROR - Exception caught in getAlbedoTexturePath for object: %\n" expMesh.name
-									format "Debug: Material Class: %\n" (classof expMesh.material)
-									format "Debug: Material Name: %\n" (if expMesh.material != undefined then expMesh.material.name else "undefined")
-									
-									-- Устанавливаем texName в пустую строку в случае ошибки
-									texName = ""
-								)
-							)
-							else 
-							(
-								format "Debug: saveTex is disabled\n"
-							)
-
-							-- Сохранение материалов
-							if saveMat == true then
-							(
-								format "Debug: saveMat is enabled\n"
-								
-								-- Здесь можно добавить генерацию .rvmat файла для PBR материалов
-								-- Пока выводим сообщение
-								messagebox "Экспорт материалов пока не работает!\t"
-								return -1
-							)
-						)
-						else
-						(
-							format "Debug: Unsupported material type: % for object: %\n" (classof expMesh.material) expMesh.name
-						)
-						
+                        if (Classof expMesh.material == MultiMaterial) or (Classof expMesh.material == PhysicalMaterial) then
+                        (
+                            if saveTex == true then
+                            (
+                                if (Classof expMesh.material != MultiMaterial) then
+                                (
+                                    texName = materialOps.getTexturePath expMesh
+                                )
+                            )
+                            if saveMat == true then
+                            (
+                                messagebox "Material export not implemented yet\t"
+                                return -1
+                            )
+                        )
                         for f = 1 to expMesh.numfaces do
                         (
+                            materialID = polyop.getFaceMatID expMesh f
+                            texName = ""
+                            if saveTex == true do
+                            (
+                                case Classof expMesh.material of
+                                (
+                                    MultiMaterial:
+                                    (
+                                        texName = materialOps.getTextureFromSubMaterial expMesh.material materialID
+                                    )
+                                    PhysicalMaterial:
+                                    (
+                                        texName = materialOps.getTexturePath expMesh
+                                    )
+                                    default:
+                                    (
+                                        texName = ""
+                                    )
+                                )
+                            )
                             vertFaceID = (polyop.getFaceVerts expMesh f) as array
                             if vertFaceID.count > 4 or vertFaceID.count < 3 do
                             (
-                                messagebox "The model you are trying to export contains invalid faces. The model will not work in O2. \t"
+                                messagebox "The model you are trying to export contains invalid faces. The model will not work in O2.\t"
                                 return -1
                             )
                             vertIDArray = vectorOps.arraySubtract vertFaceID numVerts1
@@ -757,13 +542,11 @@ struct p3dStruct
                     )
                 )
                 
-                -- STRUCT TAGGS
                 fseek file seekStartPos #seek_set
-                writeString file newLod.tagg -- "TAGG"
+                writeString file newLod.tagg
                 seekStartPos += 4
                 fseek file seekStartPos #seek_set
                 
-                -- SHARP EDGES TAGG
                 if noOfLods[i][2] != 1.0e15 then
                 (
                     vertCount = 0
@@ -802,11 +585,8 @@ struct p3dStruct
                             vertCount += meshColl[i].numverts
                         )
                     )
-                ) else (
-                    -- No sharp edges for Memory LOD
                 )
                 
-                -- SELECTION NAME TAGG
                 if noOfLods[i][2] != 1.0e15 then
                 (
                     vertCount = 0
@@ -872,17 +652,11 @@ struct p3dStruct
                         polyCount += expMesh.numfaces
                     )
                 ) else (
-                    -- Get all point names and unique names
                     nameArray = #()
-                    for point in memColl do
-                        append nameArray point.name
+                    for point in memColl do append nameArray point.name
                     uniqueNames = makeUniqueArray nameArray
-                    format "Debug: Unique names for Memory LOD: %\n" uniqueNames
-                    
-                    -- For each unique name, write a selection TAGG
                     for uniqueName in uniqueNames do
                     (
-                        -- Create selection struct with number of bytes = total points
                         selectionTag = selNameStruct tagName:uniqueName numBytes:totalVerts
                         writeByte file selectionTag.bool
                         seekStartPos += 1
@@ -896,20 +670,15 @@ struct p3dStruct
                         writeLong file selectionTag.numBytes
                         seekStartPos += 4
                         fseek file seekStartPos #seek_set
-                        format "Debug: Writing selection for name: %\n" uniqueName
                         for point in memColl do
                         (
-                            if point.name == uniqueName then
-                                writeByte file 0x01
-                            else
-                                writeByte file 0x00
+                            if point.name == uniqueName then writeByte file 0x01 else writeByte file 0x00
                             seekStartPos += 1
                             fseek file seekStartPos #seek_set
                         )
                     )
                 )
                 
-                -- UV TAGG
                 if noOfLods[i][2] != 1.0e15 do
                 (
                     for uv = 1 to 8 do
@@ -964,7 +733,6 @@ struct p3dStruct
                     )
                 )
                 
-                -- END OF FILE TAGG
                 newEndOfFile = endOfFile()
                 writeByte file newEndOfFile.bool
                 seekStartPos += 1
@@ -984,10 +752,10 @@ struct p3dStruct
             )
             fseek file seekStartPos #seek_set
             fclose file
-            format "Debug: Export completed successfully\n"
+			messagebox "Export completed successfully\t"
+			format "Debug: Export completed successfully\n"
         ) catch (
-            format "Debug: ERROR - Exception caught during export\n"
-            messagebox "There was a problem with exporting, check the types of geometry you are trying to export. \t"
+            messagebox "There was a problem with exporting, check the types of geometry you are trying to export.\t"
             fclose file
         )
     )
