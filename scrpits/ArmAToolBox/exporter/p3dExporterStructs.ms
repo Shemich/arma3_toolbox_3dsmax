@@ -167,16 +167,11 @@ struct vectorOp
 		v2 = polyop.getvert obj (vertIDArray[2]+1-vertNum1)
 		firstVec = v1 - center
 		secondVec = v2 - center
-		-- -- -- format "V1: %\n" firstVec
-		-- -- -- format "V2: %\n" secondVec
 		newNorm = normalize (cross firstVec secondVec)
 		normAng = dot newNorm faceNormal
-		-- -- -- format "Normal angles: %\n" normAng
-		-- -- -- format "Before Reverse: %\n" (vertIDArray as string)
 		if normAng < 0 do
 		(
 			reversedArray = #()
-			-- if normAng != -1.0 do -- print "NOT EXACT!"
 			for i=0 to numVerts-1 do
 			(
 				append reversedArray vertIDArray[numVerts-i]
@@ -184,20 +179,17 @@ struct vectorOp
 			vertIDArray = reversedArray
 		)
 		
-		-- -- -- format "Poly % After: %\n" faceID (vertIDArray as string)
 		return vertIDArray
 	),
 	function getVertexNormalVector obj vertexID=
 	(
 		listOfPolies = (polyop.getFacesUsingVert obj vertexId) as array
-		-- -- -- format "Polies: %\n" (listOfPolies as string)
 		listOfNormals = #()
 		comPoint = [0,0,0]
 		for i in listOfPolies do
 		(
 			polyNormal = polyop.getFaceNormal obj i
 			append listOfNormals polyNormal
-			---- -- -- format "List of Normals: %\n" (listOfNormals as string)
 		)
 		for j = 1 to listOfNormals.count do
 		(
@@ -214,10 +206,6 @@ struct vectorOp
 		(
 			coll[i] = coll[i]+(-1+numVerts)
 		)
--- 		lstVert = coll[coll.count]
--- 		preLstVert = coll[coll.count-1]
--- 		coll[coll.count] = preLstVert
--- 		coll[coll.count-1] = lstVert
 		return coll
 	),
 	
@@ -246,178 +234,49 @@ struct vectorOp
 
 struct materialOp
 (
-	function getTextureName obj matType=
+	function getTexturePath obj =
 	(
-		texturePath = ""
-		mtl = obj.material
-		if(Classof mtl == DirectX_9_Shader) do
+		-- Проверяем, что объект существует
+		if obj == undefined do
 		(
-			if matType == "superShader" do
-			(
-				CurrentTechnique = mtl.technique
-				EffectFile = mtl.effectfile
-				bmp = mtl.geteffectbitmap 2
-				BmpFileName = bmp.filename
-				BmpFileNameRel = pathConfig.removePathTopParent BmpFileName
-				-- print BmpFileNameRel 
-				if BmpFileNameRel != undefined and BmpFileNameRel != "" do texturePath = BmpFileNameRel
-			)
-			if matType == "textureAlpha" do
-			(
-				bmp = mtl.geteffectbitmap 1
-				BmpFileName = bmp.filename
-				BmpFileNameRel = pathConfig.removePathTopParent BmpFileName
-				-- print BmpFileNameRel 
-				if BmpFileNameRel != undefined and BmpFileNameRel != "" do texturePath = BmpFileNameRel
-			)
-			if matType == "glass" do
-			(
-				texturePath = "#(argb,8,8,3)color("+((mtl.diffuseColor.r/255) as string)+","+((mtl.diffuseColor.g/255) as string)+","+((mtl.diffuseColor.b/255) as string)+","+(mtl.opacity as string)+",CO)"
-			)
+			format "Debug: Object is undefined\n"
+			return ""
 		)
+
+		-- Проверяем, что у объекта есть материал
+		if obj.material == undefined do
+		(
+			format "Debug: Material is undefined for object: %\n" obj.name
+			return ""
+		)
+
+		-- Проверяем, что материал является PhysicalMaterial
+		if (Classof obj.material != PhysicalMaterial) do
+		(
+			format "Debug: Material % is not a PhysicalMaterial for object: %\n" (if obj.material != undefined then obj.material.name else "undefined") obj.name
+			return ""
+		)
+
+		-- Проверяем наличие base_color_map
+		if obj.material.base_color_map == undefined do
+		(
+			format "Debug: base_color_map is undefined for material % on object: %\n" obj.material.name obj.name
+			return ""
+		)
+
+		-- Проверяем наличие filename в base_color_map
+		if obj.material.base_color_map.filename == undefined do
+		(
+			format "Debug: base_color_map has no filename for material % on object: %\n" obj.material.name obj.name
+			return ""
+		)
+
+		-- Возвращаем путь к текстуре
+		local texturePath = obj.material.base_color_map.filename
+		format "Debug: Texture filename: % for object: %\n" texturePath obj.name
 		return texturePath
-	),
-	
-	function readTempShader typeShader=
-	(
-		rvmatFile = (getDir #scripts) + "\\ArmAToolBox\\shaders\\"+typeShader
-		openRvmatFile = openFile rvmatFile
-		seek openRvmatFile #eof
-		maxlen=filepos openRvmatFile
-		seek openRvmatFile 0
-		tempRvmat = (readChars openRvmatFile maxlen errorAtEOF:false) as string
-		close openRvmatFile
-		return tempRvmat
-	),
-	
-	function readTextureFilePath mtl num=
-	(
-		bmp = mtl.geteffectbitmap num
-		BmpFileName = bmp.filename
-		BmpFileNameRel = pathConfig.removePathTopParent BmpFileName
-		return BmpFileNameRel
-	),
-	
-	function generateSuperRVMAT obj savePath=
-	(
-		temp = readTempShader "superShaderTemp.tmp"
-		materialPath = ""
-		mtl = obj.material
-		if(Classof mtl == DirectX_9_Shader) do
-		(
-			savePath = getFilenamePath savePath
-			materialName = mtl.name
-			lookupPath = savePath+materialName+".rvmat"
-			lookup = doesFileExist lookupPath
-			if lookup == false then
-			(
-				-- get paths
-				
-				asMap = readTextureFilePath mtl 3 -- AS map
-				smdiMap  = readTextureFilePath mtl 4
-				dtMap = readTextureFilePath mtl 5
-				nohqMap = readTextureFilePath mtl 6
-				
-				bmp = mtl.geteffectbitmap 3
-				BmpFileName = bmp.filename
-				asMap = pathConfig.removePathTopParent BmpFileName
-				
-				bmp = mtl.geteffectbitmap 4
-				BmpFileName = bmp.filename
-				smdiMap = pathConfig.removePathTopParent BmpFileName
-				
-				bmp = mtl.geteffectbitmap 5
-				BmpFileName = bmp.filename
-				dtMap = pathConfig.removePathTopParent BmpFileName
-				
-				bmp = mtl.geteffectbitmap 6
-				BmpFileName = bmp.filename
-				nohqMap = pathConfig.removePathTopParent BmpFileName
-				
-				-- get values
-				
-				amb_color = ((mtl.color_ambient.r/255.0) as string)+","+((mtl.color_ambient.g/255.0) as string)+","+((mtl.color_ambient.b/255.0) as string)+",1"
-				diff_color = ((mtl.color_diffuse.r/255.0) as string)+","+((mtl.color_diffuse.g/255.0) as string)+","+((mtl.color_diffuse.b/255.0) as string)+",1"
-				spec_color = ((mtl.color_spec.r/255.0) as string)+","+((mtl.color_spec.g/255.0) as string)+","+((mtl.color_spec.b/255.0) as string)+",1"
-				spec_power = mtl.spec as string
-				
-				-- substitute strings
-				
-				if asMap != undefined do temp = substitutestring temp "$AMBIENT_PATH$" asMap
-				if smdiMap != undefined do temp = substitutestring temp "$SMDI_PATH$" smdiMap
-				if dtMap != undefined do temp = substitutestring temp "$DETAIL_PATH$" dtMap
-				if nohqMap != undefined do temp = substitutestring temp "$NORMAL_PATH$" nohqMap
-				temp = substitutestring temp "$AMBIENT_4_FLOATS$" amb_color
-				temp = substitutestring temp "$DIFFUSE_4_FLOATS$" diff_color
-				temp = substitutestring temp "$SPECULAR_4_FLOATS$" spec_color
-				temp = substitutestring temp "$SPECULAR_POWER$" spec_power
-				-- create stream
-				try (
-					fs = createFile lookupPath
-					format "%" temp to:fs
-					close fs
-					materialPath = pathConfig.removePathTopParent lookupPath
-				) catch ( print "Material Writing Aborted")
-			) else (
-				materialPath = pathConfig.removePathTopParent lookupPath
-			)
-		)
-		return materialPath
-	),
-	
-	function generateAlphaRVMAT obj savePath=
-	(
-		temp = readTempShader "textureAlpha.tmp"
-		materialPath = ""
-		mtl = obj.material
-		if(Classof mtl == DirectX_9_Shader) do
-		(
-			savePath = getFilenamePath savePath
-			materialName = "empty_nzw"
-			lookupPath = savePath+materialName+".rvmat"
-			lookup = doesFileExist lookupPath
-			if lookup == false then
-			(
-				-- create stream
-				try (
-					fs = createFile lookupPath
-					format "%" temp to:fs
-					close fs
-					materialPath = pathConfig.removePathTopParent lookupPath
-				) catch ( print "Material Writing Aborted")
-			) else (
-				materialPath = pathConfig.removePathTopParent lookupPath
-			)
-		)
-		return materialPath
-	),
-	
-	function generateGlassRVMAT obj savePath=
-	(
-		temp = readTempShader "glass.tmp"
-		materialPath = ""
-		mtl = obj.material
-		if(Classof mtl == DirectX_9_Shader) do
-		(
-			savePath = getFilenamePath savePath
-			materialName = "glass"
-			lookupPath = savePath+materialName+".rvmat"
-			lookup = doesFileExist lookupPath
-			if lookup == false then
-			(
-				-- create stream
-				try (
-					fs = createFile lookupPath
-					format "%" temp to:fs
-					close fs
-					materialPath = pathConfig.removePathTopParent lookupPath
-				) catch ( print "Material Writing Aborted")
-			) else (
-				materialPath = pathConfig.removePathTopParent lookupPath
-			)
-		)
-		return materialPath
 	)
+	--remove old funcs
 )
 
 struct arrayOp
@@ -631,48 +490,28 @@ struct p3dStruct
                     (
                         texName = "" 
                         matName = ""
-                        if (Classof expMesh.material == PhysicalMaterial) then
+                        if (Classof expMesh.material == MultiMaterial) or (Classof expMesh.material == PhysicalMaterial) then
 						(
-							--format "Debug: Type of base_color_map: %\n" (classof expMesh.material.base_color_map)
-							format "Debug: Processing PhysicalMaterial for object: %\n" expMesh.name
-
-							-- Получение текстур
+							format "Debug: Processing material for object: %\n" expMesh.name
 							if saveTex == true then
 							(
-								--format "Debug: saveTex is enabled\n"
-								
 								try
 								(
-									if expMesh.material == undefined then
-									(
-										format "Debug: Material is undefined for object: %\n" expMesh.name
-										texName = ""
-									)
-									else
-									(	
-										format "Debug: Material properties for %:\n" expMesh.material.name
-										format "Debug: base_color_map: %\n" (if expMesh.material.base_color_map != undefined then expMesh.material.base_color_map else "undefined")
-										format "Debug: base_color_map.filename: %\n" (if expMesh.material.base_color_map != undefined and expMesh.material.base_color_map.filename != undefined then expMesh.material.base_color_map.filename else "undefined")
-										texName = getAlbedoTexturePath expMesh.material
-									)
-									
+									texName = materialOps.getTexturePath expMesh
 									if texName != "" then
 									(
-										format "Debug: Albedo texture found: %\n" texName
+										format "Debug: Texture found: %\n" texName
 									)
 									else 
 									(
-										format "Debug: No albedo texture found\n"
+										format "Debug: No texture found\n"
 									)
 								)
 								catch
 								(
-									-- Перехват ошибки и вывод подробного отладочного сообщения
-									format "Debug: ERROR - Exception caught in getAlbedoTexturePath for object: %\n" expMesh.name
+									format "Debug: ERROR - Exception caught in getTexturePath for object: %\n" expMesh.name
 									format "Debug: Material Class: %\n" (classof expMesh.material)
 									format "Debug: Material Name: %\n" (if expMesh.material != undefined then expMesh.material.name else "undefined")
-									
-									-- Устанавливаем texName в пустую строку в случае ошибки
 									texName = ""
 								)
 							)
@@ -688,7 +527,7 @@ struct p3dStruct
 								
 								-- Здесь можно добавить генерацию .rvmat файла для PBR материалов
 								-- Пока выводим сообщение
-								messagebox "Экспорт материалов пока не работает!\t"
+								messagebox "Material export not work blya\t"
 								return -1
 							)
 						)
