@@ -1,0 +1,44 @@
+//0x753d947a
+/*SkeletonClasses
+EndSkeletonClasses*/
+
+/*ModelClasses
+EndModelClasses*/
+
+/*AnimationClasses
+EndAnimationClasses*/
+
+class CfgSkeletons
+{
+	//skelRefClass
+	
+	//skelClass1
+
+};
+class CfgModels
+{
+	class Default
+	{
+		sectionsInherit = "";
+		sections[] = {};
+	};
+	
+	//modelRefClass
+	
+	//modelClass1
+	
+};
+
+/*************************************************
+
+	WARNING - If you want to reuse this
+	file within the toolbox do not under
+	any cicuimstances delete any comments
+ 	(e.g. //modelClass)
+
+	Model.cfg Generated with Arma3 Modding	   
+	Toolbox for Autodesk 3ds max. Written	    
+	by Soul_Assassin. Updated for Arma 3 
+	by Shemich. For questions discord: shemich
+
+*************************************************/

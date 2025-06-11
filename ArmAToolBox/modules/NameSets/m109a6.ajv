@@ -1,0 +1,10 @@
+commander_coupola coup_comm
+commander_hatch hatch_comm
+driver_hatch hatch_driver
+drivewheel dwheel
+gun gun
+m2 mg
+sleve gun_sleve
+track track
+turret tur
+wheel wheel
